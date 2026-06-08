@@ -1,0 +1,55 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: uda_user
+      POSTGRES_PASSWORD: uda_password
+      POSTGRES_DB: uda_rag
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U uda_user -d uda_rag"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://uda_user:uda_password@postgres:5432/uda_rag
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      LLM_PROVIDER: ${LLM_PROVIDER:-gemini}
+      PYTHONUNBUFFERED: 1
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+      - ./data:/app/data
+    command: uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://uda_user:uda_password@postgres:5432/uda_rag
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      PYTHONUNBUFFERED: 1
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+      - ./config:/app/config
+      - ./data:/app/data
+    command: python -m src.ingestion.scheduler
+
+volumes:
+  postgres_data:
