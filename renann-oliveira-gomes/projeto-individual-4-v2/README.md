@@ -109,3 +109,52 @@ Coloque todos os entregáveis dentro dessa subpasta
 
 Abra um Pull Request para submissão.
 
+---
+
+## 🚀 Instruções de Execução (Local)
+
+Antes de iniciar, certifique-se de configurar o seu ambiente:
+1. Crie um arquivo `.env` na raiz do projeto contendo a sua chave da API:
+   ```env
+   LLM_PROVIDER=gemini
+   GEMINI_API_KEY=sua_chave_aqui
+   GEMINI_MODEL=gemini-2.0-flash
+   ```
+2. Instale as dependências do projeto:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+### 1. Ingestão a partir de uma pasta local (Lote de PDFs)
+Para processar vários PDFs que já estão salvos em uma pasta na sua máquina, você pode usar o argumento `--folder` via terminal. Isso acionará o orquestrador para cada documento encontrado na pasta:
+
+```bash
+python main.py --folder ingestion
+```
+*(Lembre-se de substituir `ingestion/*.pdf` pelo caminho real do diretório onde os PDFs estão).*
+
+### 2. Agendar a execução do Scraper (Coleta e Extração Automática)
+O script `scraper.py` utiliza a biblioteca `schedule` para agendar tarefas. Para deixá-lo rodando em segundo plano (configurado no código para buscar arquivos toda segunda-feira às 08:00), basta manter o processo em execução:
+
+```bash
+python scraper.py
+```
+*Nota: Em um ambiente de produção real num servidor em nuvem (ex: AWS EC2, DigitalOcean), você executaria esse arquivo utilizando ferramentas como `nohup`, `tmux`, `PM2` ou o conteinerizaria num Docker para que ele nunca parasse de rodar.*
+
+### 3. Executar o Scraper e a Extração Imediatamente
+O arquivo `scraper.py` foi programado para realizar uma **verificação imediata** assim que é iniciado, antes mesmo de entrar no laço de repetição do agendamento semanal. 
+
+Portanto, para executar e testar tudo na hora, basta utilizar o mesmo comando:
+
+```bash
+python scraper.py
+```
+Ele varrerá as páginas web listadas, fará o download dos arquivos novos para a pasta `/downloads` e invocará o extrator (Gemini) em cadeia para cada um deles.
+
+### Consultando os Dados Processados
+Depois de ter executado os arquivos (seja pela pasta local ou pelo scraper), inicie o servidor da API para visualizar os dados consolidados:
+
+```bash
+uvicorn api:app --reload
+```
+Abra no seu navegador: `http://localhost:8000/api/conjuntura` ou experimente com filtros como `http://localhost:8000/api/conjuntura?empresa=MRV`

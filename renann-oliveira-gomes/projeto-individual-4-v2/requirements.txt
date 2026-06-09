@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+pydantic
+pymupdf
+google-genai
+python-dotenv
+requests
+beautifulsoup4
+schedule
